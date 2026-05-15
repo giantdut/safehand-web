@@ -13,7 +13,5 @@ export default defineConfig({
   datasource: {
     // Pooled connection for runtime queries (PgBouncer)
     url: process.env.DATABASE_URL!,
-    // Direct connection for migrations (bypasses PgBouncer transaction mode)
-    directUrl: process.env.DIRECT_URL!,
   },
 });

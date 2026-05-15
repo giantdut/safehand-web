@@ -1,12 +1,20 @@
-import { getRepoDirectory, getRepoFile } from "@/lib/github";
+import Link from "next/link";
+import { getRepoDirectory, getRepoFile, getRepoLastSync } from "@/lib/github";
 
-export default async function ReportsPage() {
-  const files = await getRepoDirectory("weekly-summaries");
+type ReportsPageProps = {
+  searchParams: Promise<{
+    file?: string;
+  }>;
+};
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const params = await searchParams;
+  const [files, lastSync] = await Promise.all([getRepoDirectory("weekly-summaries"), getRepoLastSync()]);
   const sorted = [...files]
     .filter((entry) => entry.type === "file")
     .sort((left, right) => right.name.localeCompare(left.name));
-  const latest = sorted[0];
-  const latestContents = latest ? await getRepoFile(latest.path) : null;
+  const selected = sorted.find((file) => file.path === params.file) ?? sorted[0];
+  const selectedContents = selected ? await getRepoFile(selected.path) : null;
 
   return (
     <div className="space-y-4">
@@ -15,6 +23,9 @@ export default async function ReportsPage() {
           Weekly reports
         </h2>
         <p className="text-sm text-[#6b7280]">Read-only summaries generated weekly by Hermes.</p>
+        <p className="text-xs text-[#9ca3af]">
+          Last synced: {lastSync ? new Date(lastSync).toLocaleString() : "Unknown"}
+        </p>
       </header>
 
       {sorted.length === 0 ? (
@@ -27,14 +38,23 @@ export default async function ReportsPage() {
             <h3 className="mb-2 text-sm font-medium text-[#111827]">Available reports</h3>
             <ul className="space-y-1 text-sm text-[#374151]">
               {sorted.map((file) => (
-                <li key={file.path}>{file.name}</li>
+                <li key={file.path}>
+                  <Link
+                    href={`/dashboard/reports?file=${encodeURIComponent(file.path)}`}
+                    className={
+                      selected?.path === file.path ? "font-medium text-[#0d2b1a] underline" : "text-[#374151]"
+                    }
+                  >
+                    {file.name}
+                  </Link>
+                </li>
               ))}
             </ul>
           </aside>
           <article className="rounded-xl border border-[#d1d5db] bg-white p-4">
-            <h3 className="mb-2 text-sm font-medium text-[#111827]">{latest?.name}</h3>
+            <h3 className="mb-2 text-sm font-medium text-[#111827]">{selected?.name}</h3>
             <pre className="overflow-auto whitespace-pre-wrap text-xs text-[#374151]">
-              {latestContents ?? "No report content to preview."}
+              {selectedContents ?? "No report content to preview."}
             </pre>
           </article>
         </div>

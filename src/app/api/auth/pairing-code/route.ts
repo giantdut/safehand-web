@@ -20,7 +20,33 @@ export async function POST() {
     return NextResponse.json({ error: "Complete profile first" }, { status: 400 });
   }
 
-  const code = generateCode();
+  await prisma.pairingCode.updateMany({
+    where: {
+      accountId: account.id,
+      used: false,
+    },
+    data: {
+      used: true,
+    },
+  });
+
+  let code = "";
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = generateCode();
+    const existing = await prisma.pairingCode.findUnique({
+      where: { code: candidate },
+      select: { id: true },
+    });
+    if (!existing) {
+      code = candidate;
+      break;
+    }
+  }
+
+  if (!code) {
+    return NextResponse.json({ error: "Failed to allocate unique code" }, { status: 500 });
+  }
+
   await prisma.pairingCode.create({
     data: {
       code,

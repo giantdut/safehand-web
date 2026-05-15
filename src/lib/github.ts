@@ -3,7 +3,7 @@ type GithubFileResponse = {
   encoding: string;
 };
 
-type GithubDirectoryEntry = {
+export type GithubDirectoryEntry = {
   name: string;
   path: string;
   sha: string;
